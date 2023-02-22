@@ -10,7 +10,7 @@
 
 _____________________________________
 
-## Credits:
+## Psych Engine Team:
 * Shadow Mario - Programmer
 * RiverOaken - Artist
 * Yoshubs - Assistant Programmer
