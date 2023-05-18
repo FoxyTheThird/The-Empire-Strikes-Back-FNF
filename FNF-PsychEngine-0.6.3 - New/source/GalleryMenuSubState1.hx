@@ -3,6 +3,7 @@ import flixel.FlxState;
 import flixel.ui.FlxButton;
 import flixel.text.FlxText;
 import flixel.FlxSprite;
+import flixel.util.FlxColor;
 import Global;
 
 // import openfl.Assets;
@@ -33,6 +34,7 @@ class GalleryMenuSubState1 extends FlxState
 		// Create a title text
 		var titleText:FlxText = new FlxText(450, 20, FlxG.width, "Scrapped Art");
 		titleText.setFormat(null, 50, 0xffffff);
+		titleText.setBorderStyle(OUTLINE, FlxColor.BLACK, 2);
 		add(titleText);
 
 		// Back Button
@@ -64,6 +66,8 @@ class GalleryMenuSubState1 extends FlxState
 	{
 		FlxG.switchState(new MainMenuState());
 		Global.gcheck = "1";
+		Global.mcheck = "";
+		Global.mcheck0 = "0";
 	}
 
 	private function onMainMenu():Void
@@ -72,6 +76,8 @@ class GalleryMenuSubState1 extends FlxState
 		FlxG.switchState(new MainMenuState());
 		FlxG.mouse.visible = false;
 		Global.gcheck = "1";
+		Global.mcheck = "";
+		Global.mcheck0 = "0";
 	}
 
 	private function waitfuckgoback():Void

@@ -12,6 +12,7 @@ import flixel.effects.FlxFlicker;
 import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.text.FlxText;
+import flixel.util.FlxTimer;
 import flixel.math.FlxMath;
 import flixel.math.FlxRect;
 import flixel.tweens.FlxEase;
@@ -21,6 +22,7 @@ import lime.app.Application;
 import Achievements;
 import editors.MasterEditorMenu;
 import flixel.input.keyboard.FlxKey;
+import PathLists;
 
 using StringTools;
 
@@ -48,6 +50,8 @@ class MainMenuState extends MusicBeatState
 	var camFollow:FlxObject;
 	var camFollowPos:FlxObject;
 	var debugKeys:Array<FlxKey>;
+	var quoteDisplay:FlxText;
+	var outlineDisplay:FlxText;
 
 	override function create()
 	{
@@ -140,7 +144,7 @@ class MainMenuState extends MusicBeatState
 		}
 
 		// Disable this maybe.
-		//FlxG.camera.follow(camFollowPos, null, 1);
+		// FlxG.camera.follow(camFollowPos, null, 1);
 		// FlxG.camera.setBounds = new FlxRect(0, -140 * (optionShit.length - 5), 1600, 900 + 140 * (optionShit.length - 5));
 
 		var versionShit:FlxText = new FlxText(12, FlxG.height - 44, 0, "Psych Engine v" + psychEngineVersion, 12);
@@ -170,6 +174,16 @@ class MainMenuState extends MusicBeatState
 			}
 		}
 		#end
+
+		// Create the initial quote display
+		quoteDisplay = new FlxText(350, 500, FlxG.width);
+		quoteDisplay.alignment = "center";
+		quoteDisplay.size = 14;
+		quoteDisplay.setBorderStyle(OUTLINE, FlxColor.BLACK, 1);
+		add(quoteDisplay);
+
+		// Start the timer to change the quote after 3 to 4 seconds
+		new FlxTimer().start(5.0, changeQuote, 1);
 
 		super.create();
 	}
@@ -319,5 +333,17 @@ class MainMenuState extends MusicBeatState
 				// spr.centerOffsets();
 			}
 		});
+	}
+
+	function changeQuote(timer:FlxTimer):Void
+	{
+		// Generate a random index
+		var randomIndex:Int = Math.floor(Math.random() * PathLists.quoteList.length) % PathLists.quoteList.length;
+
+		// Update the quote display with the new quote
+		quoteDisplay.text = PathLists.quoteList[randomIndex];
+
+		// Restart the timer for the next quote change
+		new FlxTimer().start(5.0, changeQuote, 1);
 	}
 }
