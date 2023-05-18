@@ -1,0 +1,2 @@
+--macro utest.utils.Macro.checkHaxe()
+--macro utest.utils.Macro.importEnvSettings()
