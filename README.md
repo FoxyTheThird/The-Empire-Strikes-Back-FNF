@@ -15,4 +15,4 @@
 ## All that babble aside, this code might be open source on *Day 1* if enough people care! So make sure to *share* this mod around and build some names for the *new team* up to base in the FNF Modding Community!
 
 <sup> Thank you for viewing.
-- *Empire Hijinks Team* </sup>
+*Empire Hijinks Team* </sup>
