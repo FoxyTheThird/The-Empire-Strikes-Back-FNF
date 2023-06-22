@@ -446,8 +446,8 @@ class PlayState extends MusicBeatState
 		{
 			switch (songName)
 			{
-				case 'spookeez' | 'south' | 'monster':
-					curStage = 'spooky';
+				case 'agoony':
+					curStage = 'stage2';
 				case 'pico' | 'blammed' | 'philly' | 'philly-nice':
 					curStage = 'philly';
 				case 'milf' | 'satin-panties' | 'high':
@@ -857,7 +857,36 @@ class PlayState extends MusicBeatState
 				foregroundSprites.add(new BGSprite('tank5', 1620, 700, 1.5, 1.5, ['fg']));
 				if (!ClientPrefs.lowQuality)
 					foregroundSprites.add(new BGSprite('tank3', 1300, 1200, 3.5, 2.5, ['fg']));
-		}
+		
+
+			// WEEK 2!!! - Agoony
+			case 'stage2':
+				var bg:BGSprite = new BGSprite('stageback', -600, -200, 0.9, 0.9);
+				add(bg);
+
+				var stageFront:BGSprite = new BGSprite('stagefront', -650, 600, 0.9, 0.9);
+				stageFront.setGraphicSize(Std.int(stageFront.width * 1.1));
+				stageFront.updateHitbox();
+				add(stageFront);
+
+				if (!ClientPrefs.lowQuality)
+				{
+					var stageLight:BGSprite = new BGSprite('stage_light', -125, -100, 0.9, 0.9);
+					stageLight.setGraphicSize(Std.int(stageLight.width * 1.1));
+					stageLight.updateHitbox();
+					add(stageLight);
+					var stageLight:BGSprite = new BGSprite('stage_light', 1225, -100, 0.9, 0.9);
+					stageLight.setGraphicSize(Std.int(stageLight.width * 1.1));
+					stageLight.updateHitbox();
+					stageLight.flipX = true;
+					add(stageLight);
+
+					var stageCurtains:BGSprite = new BGSprite('stagecurtains', -500, -300, 1.3, 1.3);
+					stageCurtains.setGraphicSize(Std.int(stageCurtains.width * 0.9));
+					stageCurtains.updateHitbox();
+					add(stageCurtains);
+				}
+	    }
 
 		switch (Paths.formatToSongPath(SONG.song))
 		{
@@ -1327,6 +1356,9 @@ class PlayState extends MusicBeatState
 				case 'ugh' | 'guns' | 'stress':
 					tankIntro();
 
+				case 'agoony':
+					agoonyIntro();
+				
 				default:
 					startCountdown();
 			}
@@ -1805,6 +1837,106 @@ class PlayState extends MusicBeatState
 				remove(black);
 			}
 		});
+	}
+
+	function agoonyIntro()
+	{
+		var cutsceneHandler:CutsceneHandler = new CutsceneHandler();
+
+		var songName:String = Paths.formatToSongPath(SONG.song);
+		dadGroup.alpha = 0.00001;
+		//dadGroup.alpha = 1;
+		camHUD.visible = false;
+
+		var bfCutscene:FlxSprite = new FlxSprite(boyfriend.x + 5, boyfriend.y + 20);
+		bfCutscene.antialiasing = ClientPrefs.globalAntialiasing;
+		cutsceneHandler.push(bfCutscene);
+
+		var spookyk:FlxSprite = new FlxSprite(-20, 320);
+		spookyk.frames = Paths.getSparrowAtlas('cutscenes/' + songName);
+		spookyk.antialiasing = ClientPrefs.globalAntialiasing;
+		addBehindDad(spookyk);
+		cutsceneHandler.push(spookyk);
+
+		//var spookykids:FlxSprite = new FlxSprite(-20, 320);
+		//spookykids.frames = Paths.getSparrowAtlas('cutscenes/' + songName);
+		//spookykids.antialiasing = ClientPrefs.globalAntialiasing;
+		//addBehindDad(spookykids);
+		//cutsceneHandler.push(spookykids);
+
+		cutsceneHandler.finishCallback = function()
+		{
+			var timeForStuff:Float = Conductor.crochet / 1000 * 4.5;
+			FlxG.sound.music.fadeOut(timeForStuff);
+			FlxTween.tween(FlxG.camera, {zoom: defaultCamZoom}, timeForStuff, {ease: FlxEase.quadInOut});
+			moveCamera(true);
+			startCountdown();
+
+			dadGroup.alpha = 1;
+			camHUD.visible = true;
+			boyfriend.animation.finishCallback = null;
+			gf.animation.finishCallback = null;
+			gf.dance();
+		};
+
+		camFollow.set(dad.x + 280, dad.y + 170);
+		switch (songName)
+		{
+			case 'agoony':
+				cutsceneHandler.endTime = 12;
+				cutsceneHandler.music = 'DISTORTO';
+				precacheList.set('wellWellWell', 'sound');
+				precacheList.set('killYou', 'sound');
+				precacheList.set('bfBeep', 'sound');
+
+				var wellWellWell:FlxSound = new FlxSound().loadEmbedded(Paths.sound('wellWellWell'));
+				FlxG.sound.list.add(wellWellWell);
+
+				spookyk.animation.addByPrefix('wellWell', 'TANK TALK 1 P1', 24, false);
+				spookyk.animation.addByPrefix('killYou', 'TANK TALK 1 P2', 24, false);
+				spookyk.animation.play('wellWell', true);
+                //spookykids.animation.addByPrefix('wellWell', 'Spooky Kids 1 P1', 24, false);
+				//spookykids.animation.addByPrefix('killYou', 'Spooky Kids 1 P2', 24, false);
+				//spookykids.animation.play('wellWell', true);
+
+				
+
+				FlxG.camera.zoom *= 1.2;
+
+				// Well well well, what do we got here?
+				cutsceneHandler.timer(0.1, function()
+				{
+					wellWellWell.play(true);
+				});
+
+				// Move camera to BF
+				cutsceneHandler.timer(3, function()
+				{
+					camFollow.x += 750;
+					camFollow.y += 100;
+				});
+
+				// Beep!
+				cutsceneHandler.timer(4.5, function()
+				{
+					boyfriend.playAnim('singUP', true);
+					boyfriend.specialAnim = true;
+					FlxG.sound.play(Paths.sound('bfBeep'));
+				});
+
+				// Move camera to Tankman
+				cutsceneHandler.timer(6, function()
+				{
+					camFollow.x -= 750;
+					camFollow.y -= 100;
+
+					// We should just kill you but... what the hell, it's been a boring day... let's see what you've got!
+					spookyk.animation.play('killYou', true);
+			        //spookykids.animation.play('killYou', true);
+
+					FlxG.sound.play(Paths.sound('killYou'));
+				});
+		}
 	}
 
 	function tankIntro()
@@ -3543,6 +3675,8 @@ class PlayState extends MusicBeatState
 		#end
 	}
 
+	// ALSO EDIT THIS MAYBE FOR LATER
+	// MAY BE IMPORTANT
 	public var isDead:Bool = false; // Don't mess with this on Lua!!!
 
 	function doDeathCheck(?skipHealthCheck:Bool = false)

@@ -13,12 +13,16 @@ import openfl.display.Sprite;
 import flixel.util.FlxColor;
 import Global;
 import Sys;
-import VideoPlayer;
+import VideoFunction;
 
 class GalleryMenuState extends FlxState
 {
+	// var videoPlayer:VideoPlayer;
+	
 	override public function create():Void
 	{
+		// videoPlayer = new VideoPlayer(800, 600);
+
 		FlxG.mouse.useSystemCursor = false;
 
 		#if desktop
@@ -104,9 +108,17 @@ class GalleryMenuState extends FlxState
 		FlxG.switchState(new GalleryMenuSubState1());
 	}
 
-	private function onGalleryItem2():Void
+	public function onGalleryItem2():Void
 	{
-		new YouTubeLauncher("dQw4w9WgXcQ", GalleryMenuState);
+		
+		// new YouTubeLauncher("dQw4w9WgXcQ", GalleryMenuState);
+		// FlxG.switchState(new VideoPlayer());
+
+		FlxG.sound.music.stop();
+		var video = new FlxVideo("assets/videos/therapiss.mp4");
+        video.finishCallback = function() {
+			FlxG.sound.playMusic("assets/music/tfupgrademachine.ogg", 1);
+		};
 	}
 
 	private function gallerysecret():Void

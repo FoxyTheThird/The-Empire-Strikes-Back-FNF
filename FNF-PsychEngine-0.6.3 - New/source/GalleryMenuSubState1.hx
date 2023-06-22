@@ -1,10 +1,17 @@
+package;
+
 import flixel.FlxG;
 import flixel.FlxState;
+import flixel.FlxObject;
 import flixel.ui.FlxButton;
 import flixel.text.FlxText;
 import flixel.FlxSprite;
 import flixel.util.FlxColor;
+import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.input.keyboard.FlxKey;
+import flixel.addons.ui.FlxUIState;
 import Global;
+import Controls;
 
 // import openfl.Assets;
 // import flash.display.Sprite;
@@ -12,10 +19,29 @@ import Global;
 // import haxe.io.Bytes;
 class GalleryMenuSubState1 extends FlxState
 {
+	public static var curSelected:Int = 0;
+
+	private var controls(get, never):Controls;
+	var imageShit:Array<String> = [
+		'image0',
+		'image1',
+		'image2',
+		'image3',
+		// 'image5'
+	];
+	var menuItems:FlxTypedGroup<FlxSprite>;
+	var camFollow:FlxObject;
+
+	inline function get_controls():Controls
+		return PlayerSettings.player1.controls;
+
 	override public function create():Void
 	{
 		var gallerybg:FlxSprite = new FlxSprite(0, 0).loadGraphic(Paths.image('galleryBG'));
 		add(gallerybg);
+
+		camFollow = new FlxObject(0, 0, 1, 1);
+		add(camFollow);
 
 		// var bytes:Bytes = Bytes.ofString(Assets.getText("assets/images/gallery/testing.gif"));
 		// var gif1 = new AnimatedGif(bytes);
@@ -28,8 +54,37 @@ class GalleryMenuSubState1 extends FlxState
 		// bytes = haxe.io.Bytes.ofString(Assets.getText("assets/images/gallery/testing.gif"));
 		// this.add(new AnimatedGif(bytes).play());
 
-		var galleryimage1:FlxSprite = new FlxSprite(400, 300).loadGraphic(('assets/images/gallery/image2.png'));
-		add(galleryimage1);
+		menuItems = new FlxTypedGroup<FlxSprite>();
+		add(menuItems);
+
+		var scale:Float = 0.5;
+
+		for (i in 0...imageShit.length)
+		{
+			var offset:Float = 108 - (Math.max(imageShit.length, 6) - 6) * 80;
+			var menuItem:FlxSprite = new FlxSprite((i * 140) + offset, 0);
+			menuItem.scale.x = scale;
+			menuItem.scale.y = scale;
+			menuItem.loadGraphic('assets/images/gallery/' + imageShit[i] + '.png');
+		    //menuItem.x += -40; // adjust x coordinate based on index i
+			menuItem.ID = i;
+			//menuItem.screenCenter(X);
+			menuItems.add(menuItem);
+			// 0.135 is original value
+			var scr:Float = (imageShit.length - 6) * 0.27;
+			scr = 0;
+			menuItem.scrollFactor.set(0, 0);
+			menuItem.antialiasing = ClientPrefs.globalAntialiasing;
+			// menuItem.setGraphicSize(Std.int(menuItem.width * 0.58));
+			menuItem.updateHitbox();
+		}
+
+		changeItem();
+
+		var selectedSomethin:Bool = false;
+
+		// var galleryimage1:FlxSprite = new FlxSprite(400, 300).loadGraphic(('assets/images/gallery/image2.png'));
+		// add(galleryimage1);
 
 		// Create a title text
 		var titleText:FlxText = new FlxText(450, 20, FlxG.width, "Scrapped Art");
@@ -60,6 +115,33 @@ class GalleryMenuSubState1 extends FlxState
 		// for later :)
 		// var sprite:FlxSprite = new FlxSprite(0, 0).loadGraphic(Paths.image('gallery'));
 		// add(sprite);
+	}
+
+	function changeItem(huh:Int = 0)
+	{
+		curSelected += huh;
+
+		if (curSelected >= menuItems.length)
+			curSelected = 0;
+		if (curSelected < 0)
+			curSelected = menuItems.length - 1;
+
+		menuItems.forEach(function(spr:FlxSprite)
+		{
+			spr.updateHitbox();
+
+			if (spr.ID == curSelected)
+			{
+				var add:Float = 0;
+				if (menuItems.length > 4)
+				{
+					//add = menuItems.length * 8;
+					// 48
+				}
+				spr.setPosition(spr.getGraphicMidpoint().x - add, spr.getGraphicMidpoint().y);
+				// spr.centerOffsets();
+			}
+		});
 	}
 
 	private function onDeactivate(e:flash.events.Event):Void
@@ -99,5 +181,18 @@ class GalleryMenuSubState1 extends FlxState
 	override public function update(elapsed:Float):Void
 	{
 		super.update(elapsed);
+
+		// Check if up or down is pressed and scroll accordingly
+		if (controls.UI_LEFT_P)
+		{
+			FlxG.sound.play(Paths.sound('scrollMenu'));
+			changeItem(-1);
+		}
+	
+		if (controls.UI_RIGHT_P)
+		{
+			FlxG.sound.play(Paths.sound('scrollMenu'));
+			changeItem(1);
+		}
 	}
 }

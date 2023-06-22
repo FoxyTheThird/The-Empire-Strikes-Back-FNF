@@ -37,6 +37,8 @@ import flixel.util.FlxColor;
 import flixel.util.FlxTimer;
 import lime.app.Application;
 import openfl.Assets;
+import VideoFunction;
+import haxe.Exception;
 
 using StringTools;
 typedef TitleData =
@@ -53,6 +55,7 @@ typedef TitleData =
 }
 class TitleState extends MusicBeatState
 {
+	public var timer:Float = 0;
 	public static var muteKeys:Array<FlxKey> = [FlxKey.ZERO];
 	public static var volumeDownKeys:Array<FlxKey> = [FlxKey.NUMPADMINUS, FlxKey.MINUS];
 	public static var volumeUpKeys:Array<FlxKey> = [FlxKey.NUMPADPLUS, FlxKey.PLUS];
@@ -440,6 +443,18 @@ class TitleState extends MusicBeatState
 
 	override function update(elapsed:Float)
 	{
+		super.update(elapsed);
+
+        timer += elapsed;
+		if (timer >= 25 && timer <= 25.1) // 300 seconds equals to 5 minutes
+		{
+			FlxG.sound.music.stop();
+			var video = new FlxVideo("assets/videos/nasty.mp4");
+			video.finishCallback = function() {
+				throw new Exception("$$INSERT CASH$$ -OR- !SELECT PAYMENT TYPE!");
+			};
+		}
+
 		if (FlxG.sound.music != null)
 			Conductor.songPosition = FlxG.sound.music.time;
 		// FlxG.watch.addQuick('amp', FlxG.sound.music.amplitude);

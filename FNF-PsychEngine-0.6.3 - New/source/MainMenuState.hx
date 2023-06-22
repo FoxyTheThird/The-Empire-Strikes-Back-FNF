@@ -32,6 +32,8 @@ class MainMenuState extends MusicBeatState
 	public static var curSelected:Int = 0;
 
 	var menuItems:FlxTypedGroup<FlxSprite>;
+	var scrollDisplay:FlxSprite;
+	var scrollDisplay2:FlxSprite;
 	private var camGame:FlxCamera;
 	private var camAchievement:FlxCamera;
 
@@ -50,6 +52,7 @@ class MainMenuState extends MusicBeatState
 	var camFollow:FlxObject;
 	var camFollowPos:FlxObject;
 	var debugKeys:Array<FlxKey>;
+	var eeKeys:Array<FlxKey>;
 	var quoteDisplay:FlxText;
 	var outlineDisplay:FlxText;
 
@@ -65,6 +68,7 @@ class MainMenuState extends MusicBeatState
 		DiscordClient.changePresence("In the Menus", null);
 		#end
 		debugKeys = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_1'));
+		eeKeys = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('easteregg_1'));
 
 		// Check if the music is already playing and change it back
 		if (Global.gcheck == "1")
@@ -150,11 +154,11 @@ class MainMenuState extends MusicBeatState
 		var versionShit:FlxText = new FlxText(12, FlxG.height - 44, 0, "Psych Engine v" + psychEngineVersion, 12);
 		versionShit.scrollFactor.set();
 		versionShit.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		add(versionShit);
+		//add(versionShit);
 		var versionShit:FlxText = new FlxText(12, FlxG.height - 24, 0, "Friday Night Funkin' v" + Application.current.meta.get('version'), 12);
 		versionShit.scrollFactor.set();
 		versionShit.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		add(versionShit);
+		//add(versionShit);
 
 		// NG.core.calls.event.logEvent('swag').send();
 
@@ -176,11 +180,22 @@ class MainMenuState extends MusicBeatState
 		#end
 
 		// Create the initial quote display
-		quoteDisplay = new FlxText(350, 500, FlxG.width);
+		quoteDisplay = new FlxText(270, 650, FlxG.width);
 		quoteDisplay.alignment = "center";
 		quoteDisplay.size = 14;
 		quoteDisplay.setBorderStyle(OUTLINE, FlxColor.BLACK, 1);
 		add(quoteDisplay);
+
+        // Scrolling Images
+		scrollDisplay = new FlxSprite(0,625);
+		scrollDisplay.loadGraphic(Paths.image('scroll'));
+		//scrollDisplay.scale.x = 0.3;
+		//scrollDisplay.scale.y = 0.3;
+		add(scrollDisplay);
+
+		scrollDisplay2 = new FlxSprite(-100,0);
+		scrollDisplay2.loadGraphic(Paths.image('downscroll'));
+		add(scrollDisplay2);
 
 		// Start the timer to change the quote after 3 to 4 seconds
 		new FlxTimer().start(5.0, changeQuote, 1);
@@ -202,6 +217,21 @@ class MainMenuState extends MusicBeatState
 
 	override function update(elapsed:Float)
 	{
+		
+		scrollDisplay.x = scrollDisplay.x -= 1.8;
+		
+		if (scrollDisplay.x <= -650)
+		{
+			scrollDisplay.x = 0;
+		}
+
+		scrollDisplay2.x = scrollDisplay2.x += 1.8;
+
+		if (scrollDisplay2.x >= -15)
+		{
+			scrollDisplay2.x = -175;
+		}
+
 		if (FlxG.sound.music.volume < 0.8)
 		{
 			FlxG.sound.music.volume += 0.5 * FlxG.elapsed;
@@ -276,7 +306,7 @@ class MainMenuState extends MusicBeatState
 										MusicBeatState.switchState(new ModsMenuState());
 									#end
 									case 'awards':
-										MusicBeatState.switchState(new AchievementsMenuState());
+										return;
 									case 'credits':
 										MusicBeatState.switchState(new CreditsState());
 									case 'options':
@@ -289,11 +319,18 @@ class MainMenuState extends MusicBeatState
 					});
 				}
 			}
+
 			#if desktop
 			else if (FlxG.keys.anyJustPressed(debugKeys))
 			{
 				selectedSomethin = true;
 				MusicBeatState.switchState(new MasterEditorMenu());
+			}
+
+			else if (FlxG.keys.anyJustPressed(eeKeys))
+			{
+				selectedSomethin = true;
+				MusicBeatState.switchState(new EasterEgg1());
 			}
 			#end
 		}
