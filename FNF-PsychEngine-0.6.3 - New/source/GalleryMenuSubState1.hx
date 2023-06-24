@@ -62,7 +62,7 @@ class GalleryMenuSubState1 extends FlxState
 		for (i in 0...imageShit.length)
 		{
 			var offset:Float = 108 - (Math.max(imageShit.length, 6) - 6) * 80;
-			var menuItem:FlxSprite = new FlxSprite((i * 140) + offset, 0);
+			var menuItem:FlxSprite = new FlxSprite((i * 140), 0);
 			menuItem.scale.x = scale;
 			menuItem.scale.y = scale;
 			menuItem.loadGraphic('assets/images/gallery/' + imageShit[i] + '.png');
@@ -124,21 +124,34 @@ class GalleryMenuSubState1 extends FlxState
 		if (curSelected >= menuItems.length)
 			curSelected = 0;
 		if (curSelected < 0)
-			curSelected = menuItems.length - 1;
+			curSelected = 3;
 
 		menuItems.forEach(function(spr:FlxSprite)
 		{
 			spr.updateHitbox();
+			trace(spr.ID);
 
 			if (spr.ID == curSelected)
 			{
-				var add:Float = 0;
-				if (menuItems.length > 4)
+                if (curSelected == 0)
 				{
-					//add = menuItems.length * 8;
-					// 48
+					spr.x = spr.x + 50;
 				}
-				spr.setPosition(spr.getGraphicMidpoint().x - add, spr.getGraphicMidpoint().y);
+
+				else if (curSelected == 1)
+				{
+					spr.x = spr.x + 20;
+				}
+
+				else if (curSelected == 2)
+				{
+					spr.x = spr.x + 5;
+				}
+				
+				else if (curSelected == 3)
+				{
+					spr.x = spr.x + 1;
+				}
 				// spr.centerOffsets();
 			}
 		});
@@ -182,7 +195,6 @@ class GalleryMenuSubState1 extends FlxState
 	{
 		super.update(elapsed);
 
-		// Check if up or down is pressed and scroll accordingly
 		if (controls.UI_LEFT_P)
 		{
 			FlxG.sound.play(Paths.sound('scrollMenu'));

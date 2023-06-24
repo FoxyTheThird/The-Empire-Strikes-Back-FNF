@@ -1,5 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<TextureAtlas imagePath="menu_gallery.png">
-<SubTexture name="gallery basic0000" x="0" y="0" width="580" height="196" frameX="0" frameY="0" frameWidth="570" frameHeight="186" />
-<SubTexture name="gallery white0000" x="0" y="196" width="580" height="196" frameX="0" frameY="0" frameWidth="570" frameHeight="186" />
+<TextureAtlas imagePath="Gallery.png"><SubTexture name="Gallery white0000" x="0" y="179" width="570" height="179" frameX="0" frameY="0" frameWidth="570" frameHeight="179" />
+<SubTexture name="Gallery basic0001" x="0" y="179" width="570" height="179" frameX="0" frameY="0" frameWidth="570" frameHeight="179" />
+<SubTexture name="Gallery basic0002" x="0" y="179" width="570" height="179" frameX="0" frameY="0" frameWidth="570" frameHeight="179" />
+<SubTexture name="Gallery white0000" x="0" y="0" width="570" height="179" frameX="0" frameY="0" frameWidth="570" frameHeight="179" />
+<SubTexture name="Gallery white0001" x="0" y="0" width="570" height="179" frameX="0" frameY="0" frameWidth="570" frameHeight="179" />
+<SubTexture name="Gallery white0002" x="0" y="0" width="570" height="179" frameX="0" frameY="0" frameWidth="570" frameHeight="179" />
 </TextureAtlas>

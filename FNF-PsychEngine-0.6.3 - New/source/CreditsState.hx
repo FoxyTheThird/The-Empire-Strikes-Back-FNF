@@ -82,14 +82,14 @@ class CreditsState extends MusicBeatState
 
 		var pisspoop:Array<Array<String>> = [ //Name - Icon name - Description - Link - BG Color
 			['Empire Hijinks Team'],
-			['Scary The Fox',		'Scary',		'Main Programmer',								'https://twitter.com/Shadow_Mario_',	'444444'],
+			['Scary The Fox',		'Scary',		'Main Programmer',								'Fops :))))))',	'FF6600'],
 			['No Name',			'NoName',			'Main Artist/Animator',							'dAviD SorPraNo',		'B42F71'],
-			['Frann', 'Frann', 'Music Composer', 'No Name Smells like Feet and I punch him in the mouth', 'B42F71'],
+			['Frann', 'Frann', 'Music Composer', 'No Name Smells like Feet\nand I punch him in the mouth', 'B42F71'],
 			['Comp', 'comp', 'Concept Dude', '???', 'FADC45'],
 			['Amphis',				'Amphis',			'Additional Programmer',						'Vine Boom SFX Creator',			'5E99DF'],
 			['Curse', 'Curse', 'Emotional Support', 'Sweeeet', 'FADC45'],
 			[''],
-			['Former Engine Members'],
+			['Former Mod Creator'],
 			['Bipi',			'bipi',				'Ex-Creator',								'Exiled',			'3E813A'],
 			[''],
 			['Psych Engine Team'],
@@ -111,7 +111,7 @@ class CreditsState extends MusicBeatState
 			['ninjamuffin99',		'ninjamuffin99',	"Programmer of Friday Night Funkin'",							'https://twitter.com/ninja_muffin99',	'CF2D2D'],
 			['PhantomArcade',		'phantomarcade',	"Animator of Friday Night Funkin'",								'https://twitter.com/PhantomArcade3K',	'FADC45'],
 			['evilsk8r',			'evilsk8r',			"Artist of Friday Night Funkin'",								'https://twitter.com/evilsk8r',			'5ABD4B'],
-			['kawaisprite',			'kawaisprite',		"Composer of Friday Night Funkin'",								'https://twitter.com/kawaisprite',		'378FC7']
+			['kawaiisprite',			'kawaisprite',		"Composer of Friday Night Funkin'",								'https://twitter.com/kawaisprite',		'378FC7']
 		];
 		
 		for(i in pisspoop){

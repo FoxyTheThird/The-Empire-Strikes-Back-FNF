@@ -34,6 +34,7 @@ class MainMenuState extends MusicBeatState
 	var menuItems:FlxTypedGroup<FlxSprite>;
 	var scrollDisplay:FlxSprite;
 	var scrollDisplay2:FlxSprite;
+	var scrollDisplay3:FlxSprite;
 	private var camGame:FlxCamera;
 	private var camAchievement:FlxCamera;
 
@@ -187,6 +188,11 @@ class MainMenuState extends MusicBeatState
 		add(quoteDisplay);
 
         // Scrolling Images
+
+        scrollDisplay3 = new FlxSprite(400,0);
+		scrollDisplay3.loadGraphic(Paths.image('middlescroll'));
+		add(scrollDisplay3);
+
 		scrollDisplay = new FlxSprite(0,625);
 		scrollDisplay.loadGraphic(Paths.image('scroll'));
 		//scrollDisplay.scale.x = 0.3;
@@ -230,6 +236,13 @@ class MainMenuState extends MusicBeatState
 		if (scrollDisplay2.x >= -15)
 		{
 			scrollDisplay2.x = -175;
+		}
+
+		scrollDisplay3.y = scrollDisplay3.y += 1.8;
+
+		if (scrollDisplay3.y >= -15)
+		{
+			scrollDisplay3.y = -180;
 		}
 
 		if (FlxG.sound.music.volume < 0.8)

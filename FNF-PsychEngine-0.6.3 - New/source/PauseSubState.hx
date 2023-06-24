@@ -14,6 +14,7 @@ import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
 import flixel.FlxCamera;
 import flixel.util.FlxStringUtil;
+import Global;
 
 class PauseSubState extends MusicBeatSubstate
 {
@@ -29,6 +30,14 @@ class PauseSubState extends MusicBeatSubstate
 	var skipTimeText:FlxText;
 	var skipTimeTracker:Alphabet;
 	var curTime:Float = Math.max(0, Conductor.songPosition);
+	public var boyfriend:Boyfriend;
+	public var deadfriend:Boyfriend;
+	var x: Float;
+	var y: Float;
+	public static var deathSoundName:String = 'fnf_loss_sfx';
+	public static var heyFade:String = 'heyfade';
+	public static var characterName:String = 'bf';
+	public static var characterName2:String = 'bf-dead';
 	//var botplayText:FlxText;
 
 	public static var songName:String = '';
@@ -36,6 +45,9 @@ class PauseSubState extends MusicBeatSubstate
 	public function new(x:Float, y:Float)
 	{
 		super();
+
+		Global.exit = true;
+
 		if(CoolUtil.difficulties.length < 2) menuItemsOG.remove('Change Difficulty'); //No need to change difficulty if there is only one!
 
 		if(PlayState.chartingMode)
@@ -133,13 +145,26 @@ class PauseSubState extends MusicBeatSubstate
 
 		regenMenu();
 		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
+
+		boyfriend = new Boyfriend(x, y, characterName);
+		add(boyfriend);
+		boyfriend.x = 1800;
+		boyfriend.y = 175;
+
+		FlxTween.tween(boyfriend, {x: 850, y: 175}, 0.2, {ease: FlxEase.elasticIn, onComplete: function(tween:FlxTween) {
+			boyfriend.playAnim('idle', true, 24);
+        }});
 	}
 
 	var holdTime:Float = 0;
 	var cantUnpause:Float = 0.1;
+
 	override function update(elapsed:Float)
 	{
+		//boyfriend.x = 850;
+
 		cantUnpause -= elapsed;
+
 		if (pauseMusic.volume < 0.5)
 			pauseMusic.volume += 0.01 * elapsed;
 
@@ -150,13 +175,17 @@ class PauseSubState extends MusicBeatSubstate
 		var downP = controls.UI_DOWN_P;
 		var accepted = controls.ACCEPT;
 
-		if (upP)
+		if (Global.canmovemenu == true)
 		{
-			changeSelection(-1);
-		}
-		if (downP)
-		{
-			changeSelection(1);
+			if (upP)
+			{
+				changeSelection(-1);
+			}
+
+			if (downP)
+			{
+				changeSelection(1);
+			}
 		}
 
 		var daSelected:String = menuItems[curSelected];
@@ -222,8 +251,27 @@ class PauseSubState extends MusicBeatSubstate
 					PlayState.instance.practiceMode = !PlayState.instance.practiceMode;
 					PlayState.changedDifficulty = true;
 					practiceText.visible = PlayState.instance.practiceMode;
-				case "Kill Yourself":
-					restartSong();
+				case "Restart Song":
+					Global.canmovemenu = false;
+					if (Global.restart == true)
+					{
+						FlxG.sound.play(Paths.sound(deathSoundName));
+
+						deadfriend = new Boyfriend(x, y, characterName2);
+						deadfriend.x += 850;
+						deadfriend.y += 175;
+						add(deadfriend);
+						remove(boyfriend);
+
+						Global.restart = false;
+					}
+
+					FlxG.camera.fade(FlxColor.BLACK, 2, false, function()
+					{
+						Global.restart = true;
+						Global.canmovemenu = true;
+						FlxG.resetState();
+					});
 				case "Leave Charting Mode":
 					restartSong();
 					PlayState.chartingMode = false;
@@ -252,22 +300,35 @@ class PauseSubState extends MusicBeatSubstate
 					PlayState.instance.botplayTxt.alpha = 1;
 					PlayState.instance.botplaySine = 0;
 				case "Exit to menu":
-					PlayState.deathCounter = 0;
-					PlayState.seenCutscene = false;
+					Global.canmovemenu = false;
+					if (Global.exit = true)
+					{
+						Global.exit = false;
+						boyfriend.playAnim('hey', true, 24);
+						FlxG.sound.play(Paths.sound(heyFade));
 
-					WeekData.loadTheFirstEnabledMod();
-					if(PlayState.isStoryMode) {
-						MusicBeatState.switchState(new StoryMenuState());
-					} else {
-						MusicBeatState.switchState(new FreeplayState());
+						FlxTween.tween(boyfriend, {alpha: 0}, 2.0, {ease: FlxEase.quadInOut, onComplete: function(tween:FlxTween) {
+							PlayState.deathCounter = 0;
+							PlayState.seenCutscene = false;
+
+							WeekData.loadTheFirstEnabledMod();
+							if(PlayState.isStoryMode) {
+								Global.canmovemenu = true;
+								MusicBeatState.switchState(new StoryMenuState());
+							} else {
+								Global.canmovemenu = true;
+								MusicBeatState.switchState(new FreeplayState());
+							}
+							PlayState.cancelMusicFadeTween();
+							FlxG.sound.playMusic(Paths.music('freakyMenu'));
+							PlayState.changedDifficulty = false;
+							PlayState.chartingMode = false;
+						}});
 					}
-					PlayState.cancelMusicFadeTween();
-					FlxG.sound.playMusic(Paths.music('freakyMenu'));
-					PlayState.changedDifficulty = false;
-					PlayState.chartingMode = false;
 			}
 		}
 	}
+
 
 	function deleteSkipTimeText()
 	{
@@ -302,7 +363,6 @@ class PauseSubState extends MusicBeatSubstate
 	override function destroy()
 	{
 		pauseMusic.destroy();
-
 		super.destroy();
 	}
 

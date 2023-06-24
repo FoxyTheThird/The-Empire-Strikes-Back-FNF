@@ -60,6 +60,7 @@ import StageData;
 import FunkinLua;
 import DialogueBoxPsych;
 import Conductor.Rating;
+import Global;
 #if !flash
 import flixel.addons.display.FlxRuntimeShader;
 import openfl.filters.ShaderFilter;
@@ -336,6 +337,9 @@ class PlayState extends MusicBeatState
 	public static var lastCombo:FlxSprite;
 	// stores the last combo score objects in an array
 	public static var lastScore:Array<FlxSprite> = [];
+
+	var tween:FlxTween;
+	var cantPause:Float = 0;
 
 	override public function create()
 	{
@@ -857,7 +861,6 @@ class PlayState extends MusicBeatState
 				foregroundSprites.add(new BGSprite('tank5', 1620, 700, 1.5, 1.5, ['fg']));
 				if (!ClientPrefs.lowQuality)
 					foregroundSprites.add(new BGSprite('tank3', 1300, 1200, 3.5, 2.5, ['fg']));
-		
 
 			// WEEK 2!!! - Agoony
 			case 'stage2':
@@ -886,7 +889,7 @@ class PlayState extends MusicBeatState
 					stageCurtains.updateHitbox();
 					add(stageCurtains);
 				}
-	    }
+		}
 
 		switch (Paths.formatToSongPath(SONG.song))
 		{
@@ -1358,7 +1361,7 @@ class PlayState extends MusicBeatState
 
 				case 'agoony':
 					agoonyIntro();
-				
+
 				default:
 					startCountdown();
 			}
@@ -1845,7 +1848,7 @@ class PlayState extends MusicBeatState
 
 		var songName:String = Paths.formatToSongPath(SONG.song);
 		dadGroup.alpha = 0.00001;
-		//dadGroup.alpha = 1;
+		// dadGroup.alpha = 1;
 		camHUD.visible = false;
 
 		var bfCutscene:FlxSprite = new FlxSprite(boyfriend.x + 5, boyfriend.y + 20);
@@ -1858,11 +1861,11 @@ class PlayState extends MusicBeatState
 		addBehindDad(spookyk);
 		cutsceneHandler.push(spookyk);
 
-		//var spookykids:FlxSprite = new FlxSprite(-20, 320);
-		//spookykids.frames = Paths.getSparrowAtlas('cutscenes/' + songName);
-		//spookykids.antialiasing = ClientPrefs.globalAntialiasing;
-		//addBehindDad(spookykids);
-		//cutsceneHandler.push(spookykids);
+		// var spookykids:FlxSprite = new FlxSprite(-20, 320);
+		// spookykids.frames = Paths.getSparrowAtlas('cutscenes/' + songName);
+		// spookykids.antialiasing = ClientPrefs.globalAntialiasing;
+		// addBehindDad(spookykids);
+		// cutsceneHandler.push(spookykids);
 
 		cutsceneHandler.finishCallback = function()
 		{
@@ -1895,11 +1898,9 @@ class PlayState extends MusicBeatState
 				spookyk.animation.addByPrefix('wellWell', 'TANK TALK 1 P1', 24, false);
 				spookyk.animation.addByPrefix('killYou', 'TANK TALK 1 P2', 24, false);
 				spookyk.animation.play('wellWell', true);
-                //spookykids.animation.addByPrefix('wellWell', 'Spooky Kids 1 P1', 24, false);
-				//spookykids.animation.addByPrefix('killYou', 'Spooky Kids 1 P2', 24, false);
-				//spookykids.animation.play('wellWell', true);
-
-				
+				// spookykids.animation.addByPrefix('wellWell', 'Spooky Kids 1 P1', 24, false);
+				// spookykids.animation.addByPrefix('killYou', 'Spooky Kids 1 P2', 24, false);
+				// spookykids.animation.play('wellWell', true);
 
 				FlxG.camera.zoom *= 1.2;
 
@@ -1932,7 +1933,7 @@ class PlayState extends MusicBeatState
 
 					// We should just kill you but... what the hell, it's been a boring day... let's see what you've got!
 					spookyk.animation.play('killYou', true);
-			        //spookykids.animation.play('killYou', true);
+					// spookykids.animation.play('killYou', true);
 
 					FlxG.sound.play(Paths.sound('killYou'));
 				});
@@ -2990,60 +2991,63 @@ class PlayState extends MusicBeatState
 	{
 		if (paused)
 		{
+			FlxTween.tween(boyfriend, {x: 770, y: 400}, 0.5, {ease: FlxEase.elasticIn, onComplete: function(tween:FlxTween) {
 			if (FlxG.sound.music != null && !startingSong)
-			{
-				resyncVocals();
-			}
-
-			if (startTimer != null && !startTimer.finished)
-				startTimer.active = true;
-			if (finishTimer != null && !finishTimer.finished)
-				finishTimer.active = true;
-			if (songSpeedTween != null)
-				songSpeedTween.active = true;
-
-			if (carTimer != null)
-				carTimer.active = true;
-
-			var chars:Array<Character> = [boyfriend, gf, dad];
-			for (char in chars)
-			{
-				if (char != null && char.colorTween != null)
 				{
-					char.colorTween.active = true;
+					resyncVocals();
 				}
-			}
+	
+				if (startTimer != null && !startTimer.finished)
+					startTimer.active = true;
+				if (finishTimer != null && !finishTimer.finished)
+					finishTimer.active = true;
+				if (songSpeedTween != null)
+					songSpeedTween.active = true;
+	
+				if (carTimer != null)
+					carTimer.active = true;
+	
+				var chars:Array<Character> = [boyfriend, gf, dad];
+				for (char in chars)
+				{
+					if (char != null && char.colorTween != null)
+					{
+						char.colorTween.active = true;
+					}
+				}
+	
+				for (tween in modchartTweens)
+				{
+					tween.active = true;
+				}
+				for (timer in modchartTimers)
+				{
+					timer.active = true;
+				}
+				paused = false;
+				callOnLuas('onResume', []);
+	
+				#if desktop
+				if (startTimer != null && startTimer.finished)
+				{
+					DiscordClient.changePresence(detailsText, SONG.song
+						+ " ("
+						+ storyDifficultyText
+						+ ")", iconP2.getCharacter(), true,
+						songLength
+						- Conductor.songPosition
+						- ClientPrefs.noteOffset);
+				}
+				else
+				{
+					DiscordClient.changePresence(detailsText, SONG.song + " (" + storyDifficultyText + ")", iconP2.getCharacter());
+				}
+				#end
 
-			for (tween in modchartTweens)
-			{
-				tween.active = true;
-			}
-			for (timer in modchartTimers)
-			{
-				timer.active = true;
-			}
-			paused = false;
-			callOnLuas('onResume', []);
-
-			#if desktop
-			if (startTimer != null && startTimer.finished)
-			{
-				DiscordClient.changePresence(detailsText, SONG.song
-					+ " ("
-					+ storyDifficultyText
-					+ ")", iconP2.getCharacter(), true,
-					songLength
-					- Conductor.songPosition
-					- ClientPrefs.noteOffset);
-			}
-			else
-			{
-				DiscordClient.changePresence(detailsText, SONG.song + " (" + storyDifficultyText + ")", iconP2.getCharacter());
-			}
-			#end
-		}
-
-		super.closeSubState();
+				
+			}});
+			super.closeSubState();
+		};
 	}
 
 	override public function onFocus():Void
@@ -3114,6 +3118,7 @@ class PlayState extends MusicBeatState
 			iconP1.swapOldIcon();
 	}*/
 		callOnLuas('onUpdate', [elapsed]);
+		cantPause -= elapsed;
 
 		switch (curStage)
 		{
@@ -3637,29 +3642,38 @@ class PlayState extends MusicBeatState
 
 	function openPauseMenu()
 	{
-		persistentUpdate = false;
-		persistentDraw = true;
-		paused = true;
-
-		// 1 / 1000 chance for Gitaroo Man easter egg
-		/*if (FlxG.random.bool(0.1))
+		if (cantPause <= 0)
 		{
-			// gitaroo man easter egg
-			cancelMusicFadeTween();
-			MusicBeatState.switchState(new GitarooPause());
-		}
-		else { */
-		if (FlxG.sound.music != null)
-		{
-			FlxG.sound.music.pause();
-			vocals.pause();
-		}
-		openSubState(new PauseSubState(boyfriend.getScreenPosition().x, boyfriend.getScreenPosition().y));
-		// }
+			persistentUpdate = false;
+			persistentDraw = true;
+			paused = true;
 
-		#if desktop
-		DiscordClient.changePresence(detailsPausedText, SONG.song + " (" + storyDifficultyText + ")", iconP2.getCharacter());
-		#end
+			// 1 / 1000 chance for Gitaroo Man easter egg
+			/*if (FlxG.random.bool(0.1))
+			{
+				// gitaroo man easter egg
+				cancelMusicFadeTween();
+				MusicBeatState.switchState(new GitarooPause());
+			}
+			else { */
+			if (FlxG.sound.music != null)
+			{
+				FlxG.sound.music.pause();
+				vocals.pause();
+			}
+			#if desktop
+			DiscordClient.changePresence(detailsPausedText, SONG.song + " (" + storyDifficultyText + ")", iconP2.getCharacter());
+			#end
+
+			openSubState(new PauseSubState(boyfriend.getScreenPosition().x, boyfriend.getScreenPosition().y));
+
+			#if desktop
+			DiscordClient.changePresence(detailsPausedText, SONG.song + " (" + storyDifficultyText + ")", iconP2.getCharacter());
+			#end
+
+			FlxTween.tween(boyfriend, {x: 1800, y: boyfriend.y}, 0.2, {ease: FlxEase.elasticIn});
+			cantPause = 1.0;
+		}
 	}
 
 	function openChartEditor()
@@ -3686,6 +3700,7 @@ class PlayState extends MusicBeatState
 			var ret:Dynamic = callOnLuas('onGameOver', [], false);
 			if (ret != FunkinLua.Function_Stop)
 			{
+
 				boyfriend.stunned = true;
 				deathCounter++;
 
