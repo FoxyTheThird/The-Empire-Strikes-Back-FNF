@@ -1,0 +1,15 @@
+-cp src
+-lib thx.core:0.44.0
+
+--each
+
+-main hmm.Hmm
+-neko run.n
+
+--next
+
+-lib utest:1.13.2
+-cp test
+-main TestAll
+-neko bin/test-all.n
+-cmd neko bin/test-all.n

@@ -1,3 +1,0 @@
-[submodule "libs.src/libvpx"]
-	path = libs.src/libvpx
-	url = https://chromium.googlesource.com/webm/libvpx.git
