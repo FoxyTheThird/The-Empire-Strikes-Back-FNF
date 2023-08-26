@@ -91,7 +91,18 @@ class ChartingState extends MusicBeatState
 		['Screen Shake', "Value 1: Camera shake\nValue 2: HUD shake\n\nEvery value works as the following example: \"1, 0.05\".\nThe first number (1) is the duration.\nThe second number (0.05) is the intensity."],
 		['Change Character', "Value 1: Character to change (Dad, BF, GF)\nValue 2: New character's name"],
 		['Change Scroll Speed', "Value 1: Scroll Speed Multiplier (1 is default)\nValue 2: Time it takes to change fully in seconds."],
-		['Set Property', "Value 1: Variable name\nValue 2: New value"]
+		['Set Property', "Value 1: Variable name\nValue 2: New value"],
+		['Health Loss Multiplier', "Set Value 1 (float) to be the new Health Loss\nMultiplier (for missing notes).\n\n(Default value: 1.288)"],
+		['Health Gain Multiplier', "Set Value 1 (float) to be the new Health Gain\nMultiplier (for hitting notes).\n\n(Default value: 1.051)"],
+		['Dad Healthdrain Value', "Set Value 1 (float) to be how much health BF loses \nwhen Opponent hits a note.\n\nSet Value 1 to 'skip' if you don't want to set a new value.\n\nSet Value 2 to 'true' if you want sustain notes\nto deal damage.\n\nSet to 'false' to disable sustain note damage.\n\nWarning: Only works on Hard difficulty or above!\n\n(Default value: 0.014625)"],
+		['Dodge Duration', "Set Value 1 (float) to be the new Dodge Duration \n(if dodging is enabled in song tab).\n\n(Default Value: 0.222)"],
+		['Dodge Cooldown', "Set Value 1 (float) to be the new Dodge Cooldown \n(if dodging is enabled in song tab).\n\n(Default Value: 0.102)"],
+		['Sawblade Prepare Attack', "Prepares a sawblade. \nWill also call the alert event for you automatically! \n(Disable alert by setting value 1 to '0')"],
+		['Sawblade Alert', "Plays the alert animation with sound.\n\nSet Value1 to 2 for double alert,\n3 for triple alert, and 4 for quadruple alert."],
+		['Sawblade Double Alert', "Plays the Double alert animation with sound.\n\nRecommended to use Sawblade Alert instead!!!"],
+		['Sawblade Attack Fire', "Fires the sawblade. \nIf BF isn't dodging, will fuck 'em up.\n\nSet value1 to be the sound to play. (for example:\n 'triple' will play 'shared/sounds/attack-triple')\nLeave blank if you don't want different sound."],
+		['Sawblade Attack Double Fire', "Fires the Double sawblade. \nIf BF isn't dodging, will fuck 'em up.\n\nWarning: Add this event 1 step earlier to\nensure sawblade is prepared\nwith a value of '1'!!!\n\nSet value2 to '1' to make the saw instakill.\n\nRecommended to use Sawblade Attack Fire instead!!!"],
+		['Rotate Arrows', "Makes note spin by 22.5 degrees every 2 steps\nif Value 1 is set to '1'.\nSet Value 1 to '2' for every step instead.\nSet to '3' to reset."]
 	];
 
 	var _file:FileReference;
@@ -223,7 +234,9 @@ class ChartingState extends MusicBeatState
 				gfVersion: 'gf',
 				speed: 1,
 				stage: 'stage',
-				validScore: false
+				validScore: false,
+				tauntEnabled: false,
+				dodgeEnabled: false
 			};
 			addSection();
 			PlayState.SONG = _song;
@@ -605,6 +618,22 @@ class ChartingState extends MusicBeatState
 			updateGrid();
 		});
 
+		//dodgeEnabled
+		var check_dodging = new FlxUICheckBox(loadAutosaveBtn.x, noteSplashesInputText.y + 10, null, null, "Allow dodging", 100);
+		check_dodging.checked = _song.dodgeEnabled;
+		check_dodging.callback = function()
+		{
+			_song.dodgeEnabled = check_dodging.checked;
+		};
+
+		//tauntEnabled
+		var check_taunting = new FlxUICheckBox(loadAutosaveBtn.x, noteSplashesInputText.y + 30, null, null, "Allow taunting", 100);
+		check_taunting.checked = _song.tauntEnabled;
+		check_taunting.callback = function()
+		{
+			_song.tauntEnabled = check_taunting.checked;
+		};
+
 		var tab_group_song = new FlxUI(null, UI_box);
 		tab_group_song.name = "Song";
 		tab_group_song.add(UI_songTitle);
@@ -612,6 +641,8 @@ class ChartingState extends MusicBeatState
 		tab_group_song.add(check_voices);
 		tab_group_song.add(clear_events);
 		tab_group_song.add(clear_notes);
+		tab_group_song.add(check_dodging);
+		tab_group_song.add(check_taunting);
 		tab_group_song.add(saveButton);
 		tab_group_song.add(saveEvents);
 		tab_group_song.add(reloadSong);

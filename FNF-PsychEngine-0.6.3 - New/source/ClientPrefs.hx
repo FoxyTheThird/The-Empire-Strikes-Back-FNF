@@ -86,7 +86,10 @@ class ClientPrefs {
 		'debug_1'		=> [SEVEN, NONE],
 		'debug_2'		=> [EIGHT, NONE],
 		
-		'easteregg_1' => [NINE, NONE]
+		'easteregg_1' => [NINE, NONE],
+
+		'dodge' => [SPACE, NONE],
+		'taunt' => [SHIFT, NONE]
 	];
 	public static var defaultKeys:Map<String, Array<FlxKey>> = null;
 

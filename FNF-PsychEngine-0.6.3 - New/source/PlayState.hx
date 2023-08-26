@@ -338,8 +338,36 @@ class PlayState extends MusicBeatState
 	// stores the last combo score objects in an array
 	public static var lastScore:Array<FlxSprite> = [];
 
+	// For the Pause Menu Animations
 	var tween:FlxTween;
 	var cantPause:Float = 0;
+
+    // Dodge and Taunt
+	private var dodgeKey:Array<FlxKey>;
+	private var tauntKey:Array<FlxKey>;
+	var bfDodging:Bool = false;
+	var bfTaunting:Bool = false;
+	var bfCanDodge:Bool = false;
+	var bfCanTaunt:Bool = false;
+	var bfDodgeTiming:Float = 0.222; //0.22625 for single sawblades (most forgiving), 0.222 for double sawblade variation
+	var bfTauntTiming:Float = 0.35;
+	var bfDodgeCooldown:Float = 0.102; //0.1135 for single sawblades (most forgiving), 0.102 for double sawblade variation
+	var kb_attack_alert:FlxSprite;
+	var kb_attack_saw:FlxSprite;
+	var qtSawbladeAdded:Bool = false;
+	var qtAlertAdded:Bool = false;
+	var noteSpeen:Int = 0; //Used for interlope
+	var causeOfDeath:String = 'health';
+	var healthLossMultiplier:Float = 1; 
+	var healthGainMultiplier:Float = 1; //To make Termination health gain more... fair?
+	var dadDrainHealth:Float = 0; //Because I like how the opponent takes health away when hitting notes in other mods, even if it isn't that much.
+	var dadDrainHealthSustain:Bool = false; // Allows for sustain notes to drain health (at a massively reduced rate)
+    var healthonsustain:Bool = true;
+	var sawbladeHits:Int = 0;
+	var maxHealth:Int = 0;
+
+	// Ro-tate
+	var hazardModChartVariable1:Float = 0;
 
 	override public function create()
 	{
@@ -353,6 +381,9 @@ class PlayState extends MusicBeatState
 		debugKeysCharacter = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_2'));
 		PauseSubState.songName = null; // Reset to default
 		playbackRate = ClientPrefs.getGameplaySetting('songspeed', 1);
+
+		dodgeKey = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('dodge'));
+		tauntKey = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('taunt'));
 
 		keysArray = [
 			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_left')),
@@ -864,6 +895,10 @@ class PlayState extends MusicBeatState
 
 			// WEEK 2!!! - Agoony
 			case 'stage2':
+				healthLossMultiplier=1.288;
+				healthGainMultiplier=1.051;
+				dadDrainHealth=0.014625;
+
 				var bg:BGSprite = new BGSprite('stageback', -600, -200, 0.9, 0.9);
 				add(bg);
 
@@ -918,6 +953,30 @@ class PlayState extends MusicBeatState
 			case 'tank':
 				add(foregroundSprites);
 		}
+
+		//Alert!
+		kb_attack_alert = new FlxSprite();
+		kb_attack_alert.frames = Paths.getSparrowAtlas('hazard/attack_alert_NEW');
+		kb_attack_alert.animation.addByPrefix('alert', 'kb_attack_animation_alert-single', 24, false);	
+		kb_attack_alert.animation.addByPrefix('alertDOUBLE', 'kb_attack_animation_alert-double', 24, false);	
+		kb_attack_alert.animation.addByPrefix('alertTRIPLE', 'kb_attack_animation_alert-triple', 24, false);	
+		kb_attack_alert.animation.addByPrefix('alertQUAD', 'kb_attack_animation_alert-quad', 24, false);	
+		kb_attack_alert.antialiasing = ClientPrefs.globalAntialiasing;
+		kb_attack_alert.setGraphicSize(Std.int(kb_attack_alert.width * 1.5));
+		kb_attack_alert.cameras = [camHUD];
+		kb_attack_alert.x = FlxG.width - 700;
+		kb_attack_alert.y = 205;
+
+		//Saw that one coming!
+		kb_attack_saw = new FlxSprite();
+		kb_attack_saw.frames = Paths.getSparrowAtlas('hazard/attackv6');
+		kb_attack_saw.animation.addByPrefix('fire', 'kb_attack_animation_fire', 24, false);	
+		kb_attack_saw.animation.addByPrefix('prepare', 'kb_attack_animation_prepare', 24, false);	
+		kb_attack_saw.setGraphicSize(Std.int(kb_attack_saw.width * 1.15));
+		kb_attack_saw.antialiasing = ClientPrefs.globalAntialiasing;
+		kb_attack_saw.setPosition(-860,630);
+
+		sawbladeHits = 0;
 
 		#if LUA_ALLOWED
 		luaDebugGroup = new FlxTypedGroup<DebugLuaText>();
@@ -2568,6 +2627,16 @@ class PlayState extends MusicBeatState
 
 	function startSong():Void
 	{
+		if(SONG.dodgeEnabled)
+		{
+			bfCanDodge = true;
+		}
+
+		if(SONG.tauntEnabled)
+		{
+			bfCanTaunt = true;
+		}
+
 		startingSong = false;
 
 		previousFrameTime = FlxG.game.ticks;
@@ -3427,6 +3496,7 @@ class PlayState extends MusicBeatState
 		{
 			health = 0;
 			trace("RESET = True");
+			causeOfDeath = 'reset';
 		}
 		doDeathCheck();
 
@@ -3695,7 +3765,7 @@ class PlayState extends MusicBeatState
 
 	function doDeathCheck(?skipHealthCheck:Bool = false)
 	{
-		if (((skipHealthCheck && instakillOnMiss) || health <= 0) && !practiceMode && !isDead)
+		if (((skipHealthCheck && instakillOnMiss) || health <= maxHealth) && !practiceMode && !isDead)
 		{
 			var ret:Dynamic = callOnLuas('onGameOver', [], false);
 			if (ret != FunkinLua.Function_Stop)
@@ -3719,9 +3789,14 @@ class PlayState extends MusicBeatState
 				{
 					timer.active = true;
 				}
-				openSubState(new GameOverSubstate(boyfriend.getScreenPosition().x - boyfriend.positionArray[0],
-					boyfriend.getScreenPosition().y - boyfriend.positionArray[1], camFollowPos.x, camFollowPos.y));
-
+				if(SONG.song.toLowerCase()=="agoony")
+				{
+					openSubState(new GameOverSubstate(causeOfDeath, boyfriend.getScreenPosition().x - boyfriend.positionArray[0], boyfriend.getScreenPosition().y - boyfriend.positionArray[1], camFollowPos.x, camFollowPos.y));
+				}
+				else
+				{
+					openSubState(new GameOverSubstate(causeOfDeath, boyfriend.getScreenPosition().x - boyfriend.positionArray[0], boyfriend.getScreenPosition().y - boyfriend.positionArray[1], camFollowPos.x, camFollowPos.y));
+				}
 				// MusicBeatState.switchState(new GameOverState(boyfriend.getScreenPosition().x, boyfriend.getScreenPosition().y));
 
 				#if desktop
@@ -3764,6 +3839,171 @@ class PlayState extends MusicBeatState
 		// trace('Control result: ' + pressed);
 		return pressed;
 	}
+
+	public function kbATTACK_ALERT(alertType:Int = 1, playSound:Bool = true):Void
+		{
+			//Feel free to add your own alert types in here. Make sure that the alert sprite has the animation and the sound is also available.
+			switch(alertType){
+				case 2:
+					if(playSound) FlxG.sound.play(Paths.sound('hazard/alertDouble'), 1);
+	
+					if(ClientPrefs.noteOffset <= 0) {
+						kbATTACK_ALERT_PART2(0.55,'alertDOUBLE');
+					} else {
+						new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+							kbATTACK_ALERT_PART2(0.55,'alertDOUBLE');
+						});
+					}	
+
+				case 3:
+					if(playSound) FlxG.sound.play(Paths.sound('hazard/alertTriple'), 1);
+	
+					if(ClientPrefs.noteOffset <= 0) {
+						kbATTACK_ALERT_PART2(0.5875,'alertTRIPLE');
+					} else {
+						new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+							kbATTACK_ALERT_PART2(0.5875,'alertTRIPLE');
+						});
+					}		
+
+				case 4:
+					if(playSound) FlxG.sound.play(Paths.sound('hazard/alertQuadruple'), 1);
+					
+					if(ClientPrefs.noteOffset <= 0) {
+						kbATTACK_ALERT_PART2(0.6,'alertQUAD');
+					} else {
+						new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+							kbATTACK_ALERT_PART2(0.6,'alertQUAD');
+						});
+					}		
+
+				default:
+					if(playSound) FlxG.sound.play(Paths.sound('hazard/alert'), 1);
+					
+					//Not the best way to do offset since I fear lag can lead to an offsync sawblade, but hey I tried at least and it's better then no support at all. -Haz
+					if(ClientPrefs.noteOffset <= 0) {
+						kbATTACK_ALERT_PART2(0.49,'alert');
+					} else {
+						new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+							kbATTACK_ALERT_PART2(0.49,'alert');
+						});
+					}	
+
+			}
+		}
+	
+		function kbATTACK_ALERT_PART2(newAlpha:Float, animationToPlay:String):Void{
+			if(!qtAlertAdded){
+				add(kb_attack_alert);
+				qtAlertAdded=true;
+			}
+	
+			kb_attack_alert.animation.play(animationToPlay);
+			switch(animationToPlay){
+				default:
+					kb_attack_alert.offset.set(0,0);
+
+				case "alertQUAD":
+					kb_attack_alert.offset.set(152,38);
+
+				case "alertTRIPLE":
+					kb_attack_alert.offset.set(150,56);
+
+				case "alertDOUBLE":
+					kb_attack_alert.offset.set(70,5);
+
+			}
+		}
+	
+		function kbATTACK_DELAYED(state:Bool = false, soundToPlay:String = 'sounds/hazard/attack')
+		{
+			if(state)
+			{
+				if(!qtSawbladeAdded)
+				{
+					add(kb_attack_saw);
+					qtSawbladeAdded = true;
+				}
+
+				//Play saw attack animation
+				kb_attack_saw.animation.play('fire');
+				kb_attack_saw.offset.set(1600,0);
+				FlxG.camera.shake(0.001675,0.6);
+				camHUD.shake(0.001675,0.2);
+				if(cpuControlled) bfDodge();
+				//Slight delay for animation. Yeah I know I should be doing this using curStep and curBeat and what not, but I'm lazy -Haz
+				new FlxTimer().start(0.09, function(tmr:FlxTimer)
+				{
+					if(!bfDodging){
+						sawbladeHits ++;
+						trace("sawbladeHits: " + sawbladeHits);
+
+
+						//After 3rd sawblade, will guarantee an instakill.
+						if((sawbladeHits > 3))
+						{
+							//MURDER THE BITCH!
+							trace("Death Blade Hit");
+							health -= 404;
+							causeOfDeath = "sawblade";
+						}
+						else
+						{
+							health -= 0.265;
+
+							//mmmmm I loved scuffed code. But it works!
+							if(health < maxHealth)
+							{ 
+								//If the health is too low after the sawblade, sawblade kills you.
+								health -= 404;
+								causeOfDeath = "sawblade";
+							}
+							else
+							{
+								FlxG.sound.play(Paths.sound('hazard/sawbladeHit'),1); //Ouch
+							}
+							boyfriend.stunned=true;
+							boyfriend.playAnim('hurt',true);
+							new FlxTimer().start(0.495, function(tmr:FlxTimer)
+							{
+								boyfriend.stunned=false;
+								//trace("Not fucked anymore?");
+							});
+						}
+					}
+				});
+			}
+			else
+			{
+				//Forces BF to be able to dodge again in preperation for the sawblade. Mainly useful for the Double Sawblade.
+				bfCanDodge=true;
+				kb_attack_saw.animation.play('prepare');
+				kb_attack_saw.offset.set(-333,0);
+			}
+		}
+	
+		public function KBATTACK(state:Bool = false, soundToPlay:String = 'hazard/attack'):Void
+		{
+			if(state)	FlxG.sound.play(Paths.sound(soundToPlay),0.765);
+	
+			if(!qtSawbladeAdded)
+			{
+				add(kb_attack_saw);
+				qtSawbladeAdded = true;
+			}
+	
+			if(ClientPrefs.noteOffset <= 0)
+			{
+				kbATTACK_DELAYED(state,soundToPlay);
+			} 
+			else 
+			{
+				new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer)
+				{
+					kbATTACK_DELAYED(state,soundToPlay);
+				});
+			}	
+		}
 
 	public function triggerEventNote(eventName:String, value1:String, value2:String)
 	{
@@ -4203,6 +4443,140 @@ class PlayState extends MusicBeatState
 				else
 				{
 					FunkinLua.setVarInArray(this, value1, value2);
+				}
+
+			// Dodge and Health
+			case 'Health Loss Multiplier':
+				var value:Float = Std.parseFloat(value1);
+				if(Math.isNaN(value))
+				{
+					value = 1;
+				}
+				healthLossMultiplier = value;
+
+			case 'newHealthGainMultiplier':
+				var value:Float = Std.parseFloat(value1);
+				if(Math.isNaN(value))
+				{
+					value = 1;
+				}
+				healthGainMultiplier = value;
+
+			case 'Dad Healthdrain Value':
+				if(value1.toLowerCase()!="skip")
+				{
+					var value:Float = Std.parseFloat(value1);
+					if(Math.isNaN(value))
+					{
+						value = 0;
+					}
+					dadDrainHealth = value;
+				}				
+
+				if(value2.toLowerCase()=="false")
+				{
+					dadDrainHealthSustain = false;
+				}
+
+				else if(value2.toLowerCase()=="true")
+				{
+					dadDrainHealthSustain = true;
+				}
+
+			case 'Dodge Cooldown':
+				var value:Float = Std.parseFloat(value1);
+				if(Math.isNaN(value))
+				{
+					value = 0;
+				}
+				bfDodgeCooldown = value;
+				
+			case 'Dodge Duration':
+				var value:Float = Std.parseFloat(value1);
+				if(Math.isNaN(value))
+				{
+					value = 0;
+				}
+				bfDodgeTiming = value;
+            
+		    // Rotating Arrows
+			case 'Rotate Arrows':
+				var value:Int = Std.parseInt(value1);
+				if(Math.isNaN(value)) 
+				{
+					value = 0;
+				}
+
+				if(value == 3)
+				{
+					noteSpeen = 0;
+					for (i in 0...playerStrums.length)
+					{
+
+						FlxTween.tween(playerStrums.members[i], {angle:0}, 0.39, {ease: FlxEase.quadInOut});
+					}
+					for (i in 0...opponentStrums.length)
+					{
+						FlxTween.tween(opponentStrums.members[i], {angle:0}, 0.39, {ease: FlxEase.quadInOut});
+					}
+				}
+
+				else
+				{
+					noteSpeen = value;
+				}
+
+			// KB Alert and Saws!!!	
+			case 'Sawblade Alert':
+				var alertType:Int = Std.parseInt(value1);
+				if(Math.isNaN(alertType))
+				{ 
+					//If value 1 isn't a number, checks if the player wrote it as words instead
+					switch(value1)
+				    {
+						case "double":
+							alertType = 2;
+						case "triple":
+							alertType = 3;
+						case "quadruple" | "quad":
+							alertType = 4;
+						default:
+							alertType = 1;
+					}
+				}
+				kbATTACK_ALERT(alertType);
+			case 'Sawblade Double Alert':
+				//Kept for legacy support
+				kbATTACK_ALERT(2);
+			case 'Sawblade Prepare Attack':
+				KBATTACK(false);
+				if(value1 != '0')
+				{ 
+					kbATTACK_ALERT();
+				}
+			case 'Sawblade Attack Fire':
+				//For playing different sounds:
+				var soundToPlay:String = value1.toLowerCase();
+				if(soundToPlay == null || soundToPlay == " "  || soundToPlay == "" || soundToPlay == "single"  || soundToPlay == "1")
+				{
+					soundToPlay = "sounds/hazard/attack";
+				}
+				else
+				{
+					soundToPlay = "sounds/hazard/attack-"+soundToPlay;
+					trace("sawblade sound file: " + ("sounds/hazard/attack-"+soundToPlay));
+				}
+				KBATTACK(true, soundToPlay);
+
+			case 'Sawblade Attack Double Fire':
+				//Kept for legacy support
+				if(value1=='1')
+				{
+					KBATTACK(false);
+				}
+				else
+				{
+					KBATTACK(true, "sounds/hazard/attack-double");
 				}
 		}
 		callOnLuas('onEvent', [eventName, value1, value2]);
@@ -4895,10 +5269,57 @@ class PlayState extends MusicBeatState
 		}
 		return -1;
 	}
+	
+	//Dodge code, yes it's bad but oh well. -Haz
+	// I agree :( -Scary
+	function bfDodge():Void{
+		bfDodging = true;
+		bfCanDodge = false;
+
+		boyfriend.playAnim('dodge');
+
+		FlxG.sound.play(Paths.sound('dodge'));
+
+		//Wait, then set bfDodging back to false. -Haz
+		new FlxTimer().start(bfDodgeTiming, function(tmr:FlxTimer)
+		{
+			bfDodging=false;
+			boyfriend.dance();
+			//Cooldown timer so you can't keep spamming it.
+			new FlxTimer().start(bfDodgeCooldown, function(tmr:FlxTimer)
+			{
+				bfCanDodge=true;
+			});
+		});
+	}
+
+	function bfTaunt():Void{
+		bfTaunting = true;
+		boyfriend.playAnim('hey', true);
+		FlxG.sound.play(Paths.sound('hey'));
+
+		new FlxTimer().start(bfTauntTiming, function(tmr:FlxTimer){
+			bfTaunting = false;
+			boyfriend.dance();
+		});
+	}
 
 	// Hold notes
 	private function keyShit():Void
 	{
+		if(SONG.dodgeEnabled){
+			// FlxG.keys.justPressed.SPACE
+			if(FlxG.keys.anyJustPressed(dodgeKey) && !bfDodging && bfCanDodge){
+				bfDodge();
+			}
+		}
+
+		if (SONG.tauntEnabled){
+			if(FlxG.keys.anyJustPressed(tauntKey) && !bfTaunting && bfCanTaunt){
+				bfTaunt();
+			}
+		}
+
 		// HOLDING
 		var parsedHoldArray:Array<Bool> = parseKeys();
 
@@ -4997,8 +5418,11 @@ class PlayState extends MusicBeatState
 				note.destroy();
 			}
 		});
+
+		// For note stuff
+		health -= (daNote.missHealth * healthLoss * healthLossMultiplier)  * (boyfriend.stunned ? 0.195 : 1);
+		causeOfDeath = 'health';
 		combo = 0;
-		health -= daNote.missHealth * healthLoss;
 
 		if (instakillOnMiss)
 		{
@@ -5087,6 +5511,192 @@ class PlayState extends MusicBeatState
 
 	function opponentNoteHit(note:Note):Void
 	{
+
+		//Dad Health Drain Code. It's scuffed, but gets the job done -Haz
+		//Only works on Hard difficulty.
+		// Nerf = Nerf to Health Drain
+		if((storyDifficulty == 2 || storyDifficulty == 1 || SONG.song.toLowerCase()=="agoony") && dadDrainHealth>0 && !note.ignoreNote && !note.hitCausesMiss)
+		{
+			// Stops health drain if it kills player
+			if(health - dadDrainHealth - 0.1 > maxHealth)
+			{
+				// And here I thought that this code couldn't get any worse. What is wrong with me? -Haz
+				// This must be hell of the worst kind. - Scary
+
+				// Health drain on sustain notes. Ignored if you've been hit by 2+ sawblades.
+				if(dadDrainHealthSustain && note.isSustainNote && sawbladeHits < 2)
+				{
+					switch(sawbladeHits)
+				    {
+						case 0:
+							if(health < 1.35)
+							{
+								if(health < 0.8)
+								{
+									// Massive Nerf
+									health -= dadDrainHealth/8.1;
+								}
+								else
+								{
+									// Regular Nerf
+									health -= dadDrainHealth/5.7;
+								}
+							}
+							else
+							{
+								// No Nerf
+								health -= dadDrainHealth/4.375;
+							}
+						case 1:
+							if(health < 1.5)
+							{
+								if(health < 1)
+								{
+									// Massive Nerf
+									health -= dadDrainHealth/8.62;
+								}
+								else
+								{
+									// Regular Nerf
+									health -= dadDrainHealth/6.1;
+							    }
+							}
+							else
+							{
+								// No Nerf
+								health -= dadDrainHealth/4.38;
+							}
+						case 2:
+							if(health < 1.8125)
+							{
+								if(health < 1.43)
+								{
+									// Massive Nerf
+									health -= dadDrainHealth/9.3;
+								}
+								else
+								{
+									// Regular Nerf
+									health -= dadDrainHealth/6.65;
+								}
+							}
+							else
+							{
+								// No Nerf
+								health -= dadDrainHealth/4.46;
+							}
+						default:
+							// This shouldn't trigger in normal circumstances.
+							if(health < 1.6)
+							{
+								// Massive Nerf
+								health -= dadDrainHealth/8.25;
+							}
+						    else
+							{
+								// Regular Nerf
+								health -= dadDrainHealth/6.25; //nerfs the amount of health Opponent can recover if over halfway to give the player more room to breath health-wise.
+							}
+						}
+				}
+				else if (!note.isSustainNote)
+				{
+					if(sawbladeHits > 3)
+					{
+						//At this point, just constantly nerf the opponent.
+						health -= dadDrainHealth/3.15;
+					}
+					else
+					{
+						switch(sawbladeHits)
+						{
+							case 0:
+								if(health < 1.35)
+								{
+									if(health < 0.8)
+									{
+										// Massive Nerf
+										health -= dadDrainHealth/3;
+									}
+									else
+									{
+										// Regular Nerf
+										health -= dadDrainHealth/1.75;
+									}
+								}
+								else
+								{
+									// No Nerf
+									health -= dadDrainHealth;
+								}
+							case 1:
+								if(health < 1.5)
+								{
+									if(health < 1)
+									{
+										// Massive Nerf
+										health -= dadDrainHealth/3;
+									}
+									else
+									{
+										// Regular Nerf
+										health -= dadDrainHealth/1.77;
+									}
+								}
+								else
+								{
+									// No Nerf
+									health -= dadDrainHealth/1.1;
+								}
+							case 2:
+								if(health < 1.8125)
+								{
+									if(health < 1.45)
+									{
+										// Massive Nerf
+										health -= dadDrainHealth/3.1;
+									}
+									else
+									{
+										// Regular Nerf
+										health -= dadDrainHealth/2;
+									}
+								}
+								else
+								{
+									// No Nerf
+									health -= dadDrainHealth/1.2;
+								}
+							case 3:
+								if(health < 1.82)
+								{
+									// Massive Nerf
+									health -= dadDrainHealth/3.3;
+								}
+								else
+								{
+									// Regular Nerf
+									health -= dadDrainHealth/2.4;
+								}
+							default:
+								//This shouldn't trigger in normal circumstances.
+								if(health < 1.6)
+								{
+									// Massive Nerf
+									health -= dadDrainHealth/3;
+								}
+								else
+								{
+									// Regular Nerf
+									health -= dadDrainHealth/1.5;
+								}
+						}
+					}
+				}
+			}
+		}
+
+
 		if (Paths.formatToSongPath(SONG.song) != 'tutorial')
 			camZooming = true;
 
@@ -5168,6 +5778,8 @@ class PlayState extends MusicBeatState
 					spawnNoteSplashOnNote(note);
 				}
 
+				causeOfDeath = "hurt";
+
 				if (!note.noMissAnimation)
 				{
 					switch (note.noteType)
@@ -5197,8 +5809,18 @@ class PlayState extends MusicBeatState
 				if (combo > 9999)
 					combo = 9999;
 				popUpScore(note);
+
+				if (healthonsustain == false)
+				{
+					//Fuck you, no health gain on sustain notes.
+					health += note.hitHealth * healthGain * healthGainMultiplier;
+				}
 			}
-			health += note.hitHealth * healthGain;
+			if(healthonsustain == true)
+			{
+				// 'Ere you go mate
+				health += note.hitHealth * healthGain;
+			}
 
 			if (!note.noAnimation)
 			{
@@ -5550,6 +6172,38 @@ class PlayState extends MusicBeatState
 		lastStepHit = curStep;
 		setOnLuas('curStep', curStep);
 		callOnLuas('onStepHit', []);
+
+		if(noteSpeen==1){
+			if(curStep % 2 == 0){
+				for (i in 0...playerStrums.length) {
+					playerStrums.members[i].angle += 22.5;
+					//opponentStrums.members[i].angle += 22.5;
+
+					//overflow shit
+					//if(opponentStrums.members[i].angle >= 360){
+					//	opponentStrums.members[i].angle = (opponentStrums.members[i].angle % 360) * 360;
+					//}
+					if(playerStrums.members[i].angle >= 360){
+						playerStrums.members[i].angle = (playerStrums.members[i].angle % 360) * 360;
+					}
+					opponentStrums.members[i].angle = playerStrums.members[i].angle;
+				}
+			}
+		}else if(noteSpeen==2){
+			for (i in 0...playerStrums.length) {
+				playerStrums.members[i].angle += 22.5;
+				//opponentStrums.members[i].angle += 22.5;
+
+				//overflow shit
+				//if(opponentStrums.members[i].angle >= 360){
+				//	opponentStrums.members[i].angle = (opponentStrums.members[i].angle % 360) * 360;
+				//}
+				if(playerStrums.members[i].angle >= 360){
+					playerStrums.members[i].angle = (playerStrums.members[i].angle % 360) * 360;
+				}
+				opponentStrums.members[i].angle = playerStrums.members[i].angle;
+			}
+		}
 	}
 
 	var lightningStrikeBeat:Int = 0;
